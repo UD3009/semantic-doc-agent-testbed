@@ -82,7 +82,14 @@ def _on_payment_processed(payload):
     if order is None:
         return
     order.payment_id = payload["payment_id"]
-    order.status = "confirmed" if payload["status"] == "captured" else "pending_capture"
+    if payload["status"] == "captured":
+        order.status = "confirmed"
+        events.publish(
+            "OrderConfirmed",
+            {"order_id": order.order_id, "total_cents": order.total_cents},
+        )
+    else:
+        order.status = "pending_capture"
 
 
 events.subscribe("PaymentProcessed", _on_payment_processed)
