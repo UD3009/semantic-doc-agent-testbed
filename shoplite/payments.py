@@ -8,7 +8,7 @@ import time
 from shoplite import auth, events
 
 CAPTURE_MODE = "manual"
-REFUND_WINDOW_DAYS = 30
+REFUND_WINDOW_DAYS = 14
 SUPPORTED_CURRENCIES = {"USD", "EUR", "INR"}
 
 _payments = {}  # payment_id -> record
