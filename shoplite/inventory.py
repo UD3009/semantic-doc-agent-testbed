@@ -4,7 +4,7 @@ Depends on auth: adding stock requires the inventory:write permission.
 """
 from shoplite import auth
 
-LOW_STOCK_THRESHOLD = 5
+LOW_STOCK_THRESHOLD = 10
 
 _stock = {}  # sku -> quantity on hand
 
