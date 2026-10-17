@@ -8,7 +8,7 @@ import hmac
 import secrets
 import time
 
-TOKEN_TTL_SECONDS = 24 * 60 * 60
+TOKEN_TTL_SECONDS = 60 * 60
 
 _users = {}   # username -> (salt, password_hash)
 _tokens = {}  # token -> (username, expires_at)
