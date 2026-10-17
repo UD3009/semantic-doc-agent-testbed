@@ -1,16 +1,14 @@
 """Orders: orchestrates placing an order across the other modules.
 
 Depends on auth (identity and permissions), inventory (is it in stock), notifications (confirm to
-the user) and events. It no longer calls payments directly: it publishes OrderPlaced and
+the user), events and config. It no longer calls payments directly: it publishes OrderPlaced and
 reacts to PaymentProcessed.
 """
 import itertools
 from dataclasses import dataclass
 from typing import Optional
 
-from shoplite import auth, events, inventory, notifications
-
-TAX_RATE = 0.08
+from shoplite import auth, config, events, inventory, notifications
 
 _orders = {}  # order_id -> OrderResult
 _ids = itertools.count(1)
@@ -47,7 +45,7 @@ def place_order(token, sku, quantity, unit_price_cents):
     except inventory.OutOfStock:
         return OrderResult(status="rejected", reason="out of stock")
     subtotal = unit_price_cents * quantity
-    total = round(subtotal * (1 + TAX_RATE))
+    total = round(subtotal * (1 + config.TAX_RATE))
     order_id = "ord_%d" % next(_ids)
     order = OrderResult(
         status="pending_payment",
