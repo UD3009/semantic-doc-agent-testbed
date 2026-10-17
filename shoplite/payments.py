@@ -1,11 +1,11 @@
 """Payments: charges and refunds for authenticated users.
 
-Depends on auth to identify the caller.
+Depends on auth to identify the caller and on events to react to new orders.
 """
 import itertools
 import time
 
-from shoplite import auth
+from shoplite import auth, events
 
 CAPTURE_MODE = "auto"
 REFUND_WINDOW_DAYS = 30
@@ -24,6 +24,11 @@ def charge(token, amount_cents, currency="USD"):
     username = auth.verify_token(token)
     if username is None:
         raise PermissionError("invalid or expired token")
+    return _record_charge(username, amount_cents, currency)
+
+
+def _record_charge(username, amount_cents, currency):
+    """Validate and store a charge for a user. Shared by charge() and the order handler."""
     if amount_cents <= 0:
         raise ValueError("amount must be positive")
     if currency not in SUPPORTED_CURRENCIES:
@@ -55,3 +60,21 @@ def refund(token, payment_id):
         raise ValueError("refund window has passed")
     record["status"] = "refunded"
     return record
+
+
+def _on_order_placed(payload):
+    """React to an OrderPlaced event by charging the user and announcing the result."""
+    record = _record_charge(
+        payload["user"], payload["total_cents"], payload.get("currency", "USD")
+    )
+    events.publish(
+        "PaymentProcessed",
+        {
+            "order_id": payload["order_id"],
+            "payment_id": record["payment_id"],
+            "status": record["status"],
+        },
+    )
+
+
+events.subscribe("OrderPlaced", _on_order_placed)

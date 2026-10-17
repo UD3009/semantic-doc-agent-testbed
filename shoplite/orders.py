@@ -1,13 +1,14 @@
 """Orders: orchestrates placing an order across the other modules.
 
-Depends on auth (who is ordering), inventory (is it in stock), payments (take the
-money) and notifications (confirm to the user).
+Depends on auth (who is ordering), inventory (is it in stock), notifications (confirm to
+the user) and events. It no longer calls payments directly: it publishes OrderPlaced and
+reacts to PaymentProcessed.
 """
 import itertools
 from dataclasses import dataclass
 from typing import Optional
 
-from shoplite import auth, inventory, notifications, payments
+from shoplite import auth, events, inventory, notifications
 
 TAX_RATE = 0.08
 
@@ -32,8 +33,9 @@ class OrderResult:
 def place_order(token, sku, quantity, unit_price_cents):
     """Place an order and return an OrderResult.
 
-    The status is "rejected" if stock is insufficient. Otherwise it is "confirmed" when
-    the payment was captured, or "pending_capture" when it was only authorized.
+    The status is "rejected" if stock is insufficient. Otherwise the order starts as
+    "pending_payment" and the PaymentProcessed handler updates it to "confirmed" (payment
+    captured) or "pending_capture" (payment only authorized).
     """
     username = auth.verify_token(token)
     if username is None:
@@ -44,19 +46,20 @@ def place_order(token, sku, quantity, unit_price_cents):
         return OrderResult(status="rejected", reason="out of stock")
     subtotal = unit_price_cents * quantity
     total = round(subtotal * (1 + TAX_RATE))
-    payment = payments.charge(token, total)
-    status = "confirmed" if payment["status"] == "captured" else "pending_capture"
     order_id = "ord_%d" % next(_ids)
     order = OrderResult(
-        status=status,
+        status="pending_payment",
         order_id=order_id,
         user=username,
         sku=sku,
         quantity=quantity,
         total_cents=total,
-        payment_id=payment["payment_id"],
     )
     _orders[order_id] = order
+    events.publish(
+        "OrderPlaced",
+        {"order_id": order_id, "user": username, "total_cents": total},
+    )
     notifications.send_order_confirmation(username, order_id)
     return order
 
@@ -69,3 +72,15 @@ def get_order(order_id):
 def list_orders():
     """Return all orders placed so far."""
     return list(_orders.values())
+
+
+def _on_payment_processed(payload):
+    """Update an order's status once its payment has been processed."""
+    order = _orders.get(payload["order_id"])
+    if order is None:
+        return
+    order.payment_id = payload["payment_id"]
+    order.status = "confirmed" if payload["status"] == "captured" else "pending_capture"
+
+
+events.subscribe("PaymentProcessed", _on_payment_processed)
