@@ -38,7 +38,9 @@ def place_order(token, sku, quantity, unit_price_cents):
     username = auth.verify_token(token)
     if username is None:
         raise PermissionError("invalid or expired token")
-    if not inventory.reserve(sku, quantity):
+    try:
+        inventory.reserve(sku, quantity)
+    except inventory.OutOfStock:
         return OrderResult(status="rejected", reason="out of stock")
     subtotal = unit_price_cents * quantity
     total = round(subtotal * (1 + TAX_RATE))

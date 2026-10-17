@@ -8,6 +8,10 @@ LOW_STOCK_THRESHOLD = 5
 _stock = {}  # sku -> quantity on hand
 
 
+class OutOfStock(Exception):
+    """Raised when a reservation asks for more units than are on hand."""
+
+
 def add_stock(sku, quantity):
     """Add units of a SKU to stock."""
     if quantity <= 0:
@@ -21,11 +25,10 @@ def get_stock(sku):
 
 
 def reserve(sku, quantity):
-    """Reserve stock for an order. Returns True on success, False if there is not enough."""
+    """Reserve stock for an order. Raises OutOfStock if there is not enough."""
     if _stock.get(sku, 0) < quantity:
-        return False
+        raise OutOfStock(sku)
     _stock[sku] -= quantity
-    return True
 
 
 def is_low_stock(sku):
