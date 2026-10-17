@@ -7,7 +7,7 @@ import time
 
 from shoplite import auth, events
 
-CAPTURE_MODE = "auto"
+CAPTURE_MODE = "manual"
 REFUND_WINDOW_DAYS = 30
 SUPPORTED_CURRENCIES = {"USD", "EUR", "INR"}
 
