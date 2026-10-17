@@ -12,7 +12,7 @@ def order_count():
 
 def total_revenue_cents():
     """Return revenue from confirmed orders only, in cents."""
-    return sum(o["total_cents"] for o in orders.list_orders() if o["status"] == "confirmed")
+    return sum(o.total_cents for o in orders.list_orders() if o.status == "confirmed")
 
 
 def revenue_summary():
