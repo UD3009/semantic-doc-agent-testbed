@@ -4,7 +4,7 @@ Depends on auth to check that a recipient exists.
 """
 from shoplite import auth
 
-ORDER_TEMPLATE = "Hi {user}, your order {order_id} was received."
+ORDER_TEMPLATE = "Thanks for your order, {user}! We have received {order_id} and will keep you posted."
 
 _outbox = []  # messages "sent" so far
 
