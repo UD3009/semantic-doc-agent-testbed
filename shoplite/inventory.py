@@ -1,7 +1,8 @@
 """Inventory: stock levels per SKU and stock reservation.
 
-This module has no dependencies on other ShopLite modules.
+Depends on auth: adding stock requires the inventory:write permission.
 """
+from shoplite import auth
 
 LOW_STOCK_THRESHOLD = 5
 
@@ -12,8 +13,10 @@ class OutOfStock(Exception):
     """Raised when a reservation asks for more units than are on hand."""
 
 
-def add_stock(sku, quantity):
-    """Add units of a SKU to stock."""
+def add_stock(token, sku, quantity):
+    """Add units of a SKU to stock. The caller needs the inventory:write permission."""
+    if not auth.has_permission(token, "inventory:write"):
+        raise PermissionError("not allowed to change stock")
     if quantity <= 0:
         raise ValueError("quantity must be positive")
     _stock[sku] = _stock.get(sku, 0) + quantity

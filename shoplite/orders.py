@@ -1,6 +1,6 @@
 """Orders: orchestrates placing an order across the other modules.
 
-Depends on auth (who is ordering), inventory (is it in stock), notifications (confirm to
+Depends on auth (identity and permissions), inventory (is it in stock), notifications (confirm to
 the user) and events. It no longer calls payments directly: it publishes OrderPlaced and
 reacts to PaymentProcessed.
 """
@@ -40,6 +40,8 @@ def place_order(token, sku, quantity, unit_price_cents):
     username = auth.verify_token(token)
     if username is None:
         raise PermissionError("invalid or expired token")
+    if not auth.has_permission(token, "order:place"):
+        raise PermissionError("not allowed to place orders")
     try:
         inventory.reserve(sku, quantity)
     except inventory.OutOfStock:
