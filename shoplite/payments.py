@@ -9,12 +9,13 @@ from shoplite import auth
 
 CAPTURE_MODE = "auto"
 REFUND_WINDOW_DAYS = 30
+SUPPORTED_CURRENCIES = {"USD", "EUR", "INR"}
 
 _payments = {}  # payment_id -> record
 _ids = itertools.count(1)
 
 
-def charge(token, amount_cents):
+def charge(token, amount_cents, currency="USD"):
     """Charge the user behind the token. Returns a payment record (dict).
 
     In "auto" capture mode the payment is captured immediately (status "captured").
@@ -25,12 +26,15 @@ def charge(token, amount_cents):
         raise PermissionError("invalid or expired token")
     if amount_cents <= 0:
         raise ValueError("amount must be positive")
+    if currency not in SUPPORTED_CURRENCIES:
+        raise ValueError("unsupported currency")
     payment_id = "pay_%d" % next(_ids)
     status = "captured" if CAPTURE_MODE == "auto" else "authorized"
     record = {
         "payment_id": payment_id,
         "user": username,
         "amount_cents": amount_cents,
+        "currency": currency,
         "status": status,
         "created_at": time.time(),
     }
